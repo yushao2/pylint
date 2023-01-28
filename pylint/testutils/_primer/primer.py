@@ -56,6 +56,11 @@ class Primer:
         run_parser.add_argument(
             "--type", choices=["main", "pr"], required=True, help="Type of primer run."
         )
+        run_parser.add_argument(
+            "--package",
+            help="If set, only run for specified package",
+            default="",
+        )
 
         # All arguments for the compare parser
         compare_parser = self._subparsers.add_parser("compare")
@@ -78,7 +83,9 @@ class Primer:
         # Storing arguments
         self.config = self._argument_parser.parse_args()
 
-        self.packages = self._get_packages_to_lint_from_json(json_path)
+        self.packages = self._get_packages_to_lint_from_json(
+            json_path, self.config.package
+        )
         """All packages to prime."""
 
         if self.config.command == "prepare":
@@ -101,10 +108,13 @@ class Primer:
         return min_python_tuple <= sys.version_info[:2]
 
     @staticmethod
-    def _get_packages_to_lint_from_json(json_path: Path) -> dict[str, PackageToLint]:
+    def _get_packages_to_lint_from_json(
+        json_path: Path, filter_package: str = ""
+    ) -> dict[str, PackageToLint]:
         with open(json_path, encoding="utf8") as f:
             return {
                 name: PackageToLint(**package_data)
                 for name, package_data in json.load(f).items()
                 if Primer._minimum_python_supported(package_data)
+                and (not filter_package or name == filter_package)
             }
