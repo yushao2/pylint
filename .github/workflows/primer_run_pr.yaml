@@ -40,6 +40,10 @@ jobs:
         uses: actions/checkout@v3.3.0
         with:
           fetch-depth: 0
+<<<<<<< HEAD
+=======
+      - run: sudo apt install jq
+>>>>>>> b466e984e (ci: parallelise primer run pr on modules)
       - name: Generate matrix
         id: set-matrix
         run:
