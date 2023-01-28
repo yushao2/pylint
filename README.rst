@@ -150,8 +150,8 @@ make a code contribution.
 
 .. This is used inside the doc to recover the end of the short text for contribution
 
-Show your usage
------------------
+Show your usage(s)
+------------------
 
 You can place this badge in your README to let others know your project uses pylint.
 
