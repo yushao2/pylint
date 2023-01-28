@@ -99,8 +99,14 @@ jobs:
             });
             fs.writeFileSync("primer_pr_number.zip", Buffer.from(downloadThree.data));
       - run: unzip primer_main_output.zip
-      - run: unzip primer_pr_output.zip
+      - run: unzip "primer_pr_output.zip"
       - run: unzip primer_pr_number.zip
+      - uses: sergeysova/jq-action@v2.3.0
+        with:
+          cmd:
+            "jq -n 'reduce inputs as $item ({}; . *= $item)' output_${{
+            steps.python.outputs.python-version }}_pr*.txt > output_${{
+            steps.python.outputs.python-version }}_pr.txt"
       - name: Compare outputs
         run: |
           . venv/bin/activate
