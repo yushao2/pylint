@@ -31,6 +31,11 @@ jobs:
     steps:
       - name: Check out code from GitHub
         uses: actions/checkout@v3.3.0
+      - name: Get packages
+        id: get-packages
+        uses: sergeysova/jq-action@v2.3.0
+        with:
+          cmd: "jq 'keys' tests/primer/packages_to_prime.json -c"
       - name: Set up Python ${{ env.DEFAULT_PYTHON }}
         id: python
         uses: actions/setup-python@v4.5.0
@@ -76,17 +81,18 @@ jobs:
                archive_format: "zip",
             });
             fs.writeFileSync("primer_main_output.zip", Buffer.from(downloadOne.data));
-
-            // Get PR output
-            const [matchArtifactWorkflowPR] = artifacts_workflow.data.artifacts.filter((artifact) =>
-              artifact.name == "primer_output_pr");
-            const downloadTwo = await github.rest.actions.downloadArtifact({
-               owner: context.repo.owner,
-               repo: context.repo.repo,
-               artifact_id: matchArtifactWorkflowPR.id,
-               archive_format: "zip",
-            });
-            fs.writeFileSync("primer_pr_output.zip", Buffer.from(downloadTwo.data));
+            for (const pkg of ${{ steps.get-packages.outputs.value }})
+              // Get PR output
+              const [matchArtifactWorkflowPR] = artifacts_workflow.data.artifacts.filter((artifact) =>
+                artifact.name == `primer_output_pr_${pkg}`);
+              const downloadTwo = await github.rest.actions.downloadArtifact({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                artifact_id: matchArtifactWorkflowPR.id,
+                archive_format: "zip",
+              });
+              fs.writeFileSync(`primer_pr_${pkg}_output.zip`, Buffer.from(downloadTwo.data));
+            }
 
             // Get PR number
             const [matchArtifactWorkflowNumber] = artifacts_workflow.data.artifacts.filter((artifact) =>
@@ -99,8 +105,14 @@ jobs:
             });
             fs.writeFileSync("primer_pr_number.zip", Buffer.from(downloadThree.data));
       - run: unzip primer_main_output.zip
-      - run: unzip primer_pr_output.zip
+      - run: unzip "primer_pr_*_output.zip"
       - run: unzip primer_pr_number.zip
+      - uses: sergeysova/jq-action@v2.3.0
+        with:
+          cmd:
+            "jq -n 'reduce inputs as $item ({}; . *= $item)' output_${{
+            steps.python.outputs.python-version }}_pr*.txt > output_${{
+            steps.python.outputs.python-version }}_pr.txt"
       - name: Compare outputs
         run: |
           . venv/bin/activate
